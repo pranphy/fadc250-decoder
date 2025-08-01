@@ -20,11 +20,8 @@ int data_a[16][250];
 void decode_word(uint32_t data)
 {
     static uint32_t type_last = 15;	/* initialize to type FILLER WORD */
-    static uint32_t time_last = 0;
     static int new_type = 0;
     int type_current = 0;
-    static int pulse_number = 0;
-    static int isca = 0;
     generic_data_word_t gword;
 
     gword.raw = data;
@@ -72,21 +69,10 @@ void decode_word(uint32_t data)
                 if( new_type )
                 {
                     fa250_trigger_time_1_t d; d.raw = data;
-                    time_last = 1;
                 }
                 else
                 {
                     fa250_trigger_time_2_t d; d.raw = data;
-                    if( time_last == 1 )
-                    {
-                        // std::printf("%8X - TRIGGER TIME 2 - time = %08x\n",
-                        //        d.raw,
-                        //        (d.bf.T_A<<16) | (d.bf.T_B<<8) | (d.bf.T_C) );
-                    }
-                    else
-                        //   std::printf("%8X - TRIGGER TIME - (ERROR)\n", data);
-
-                        time_last = 0;
                 }
                 break;
             }
@@ -118,7 +104,6 @@ void decode_word(uint32_t data)
                 else
                 {
                     fa250_peppo_lo_sum_t d; d.raw = data;
-                    std::printf("%8X - PEPPo Lo Sum - lo sum = 0x%06x\n", d.raw, d.bf.lo_sum);
                     break;
                 }
             }
@@ -140,14 +125,12 @@ void decode_word(uint32_t data)
                 if( new_type )
                 { /* Channel ID and Pedestal Info */
                     fa250_pulse_parameters_1_t d; d.raw = data;
-                    pulse_number  = 0; /* Initialize */
                 }
                 else
                 {
                     if(data & (1<<30))
                     { /* Word 1: Integral of n-th pulse in window */
                         fa250_pulse_parameters_2_t d; d.raw = data;
-                        pulse_number++;
                     }
                     else
                     { /* Word 2: Time of n-th pulse in window */
@@ -162,7 +145,6 @@ void decode_word(uint32_t data)
             if( new_type )
             {
                 fa250_scaler_1_t d; d.raw = data;
-                isca = 1;
             }
             break;
 
@@ -229,9 +211,8 @@ void decode_fadc(std::string inputfile, std::string outputfile)
 
     }
 
-    // Write the tree to the file and close it
     tree->Write();
     file->Close();
-    std::cout<<outputfile<<" written"<<std::endl;
+    std::cout<<"Written"<<t<<"events to:"<<outputfile<<std::endl;
 }
 
