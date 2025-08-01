@@ -96,12 +96,6 @@ void decode_word(uint32_t data)
                 if( new_type )
                 {
                     fa250_window_raw_data_1_t d; d.raw = data;
-
-                    std::printf("%8X - WINDOW RAW DATA - chan = %d   nsamples = %d\n",
-                            d.raw,
-                            d.bf.channel_number,
-                            d.bf.PTW);
-
                     current_chan = d.bf.channel_number;
                     entry = 0;
                 }
