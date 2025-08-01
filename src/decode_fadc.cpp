@@ -39,132 +39,20 @@ void decode_word(uint32_t data)
 
     switch( type_current )
     {
-        case 0:		/* BLOCK HEADER */
-            {
-                if( new_type )
-                {
-                    block_header_t d; d.raw = data;
-                }
-                else
-                {
-                    fa250_block_header_2_t d; d.raw = data;
-                }
-                break;
-            }
-
-        case 1:		/* BLOCK TRAILER */
-            {
-                block_trailer_t d; d.raw = data;
-                break;
-            }
-
-        case 2:		/* EVENT HEADER */
-            {
-                fa250_event_header_t d; d.raw = data;
-                break;
-            }
-
-        case 3:		/* TRIGGER TIME */
-            {
-                if( new_type )
-                {
-                    fa250_trigger_time_1_t d; d.raw = data;
-                }
-                else
-                {
-                    fa250_trigger_time_2_t d; d.raw = data;
-                }
-                break;
-            }
-
         case 4:		/* WINDOW RAW DATA */
-            {
-                if( new_type )
-                {
-                    fa250_window_raw_data_1_t d; d.raw = data;
-                    current_chan = d.bf.channel_number;
-                    entry = 0;
-                }
-                else
-                {
-                    fa250_window_raw_data_n_t d; d.raw = data;
-                    data_a[current_chan][entry++] = d.bf.adc_sample_1;
-                    data_a[current_chan][entry++] = d.bf.adc_sample_2;
-                }
-                break;
-            }
-
-        case 5:		/* PEPPo Channel Sums */
-            {
-                if( new_type )
-                {
-                    fa250_peppo_hi_sum_t d; d.raw = data;
-                    break;
-                }
-                else
-                {
-                    fa250_peppo_lo_sum_t d; d.raw = data;
-                    break;
-                }
-            }
-
-        case 7:		/* PULSE INTEGRAL */
-            {
-                fa250_pulse_integral_t d; d.raw = data;
-                break;
-            }
-
-        case 8:		/* PULSE TIME */
-            {
-                fa250_pulse_time_t d; d.raw = data;
-                break;
-            }
-
-        case 9:		/* PULSE PARAMETERS */
-            {
-                if( new_type )
-                { /* Channel ID and Pedestal Info */
-                    fa250_pulse_parameters_1_t d; d.raw = data;
-                }
-                else
-                {
-                    if(data & (1<<30))
-                    { /* Word 1: Integral of n-th pulse in window */
-                        fa250_pulse_parameters_2_t d; d.raw = data;
-                    }
-                    else
-                    { /* Word 2: Time of n-th pulse in window */
-                        fa250_pulse_parameters_3_t d; d.raw = data;
-                    }
-                }
-
-                break;
-            }
-
-        case 12:		/* SCALER HEADER */
             if( new_type )
             {
-                fa250_scaler_1_t d; d.raw = data;
+                fa250_window_raw_data_1_t d; d.raw = data;
+                current_chan = d.bf.channel_number;
+                entry = 0;
+            }
+            else
+            {
+                fa250_window_raw_data_n_t d; d.raw = data;
+                data_a[current_chan][entry++] = d.bf.adc_sample_1;
+                data_a[current_chan][entry++] = d.bf.adc_sample_2;
             }
             break;
-
-        case 13:		/* END OF EVENT */
-            {
-                event_trailer_t d; d.raw = data;
-                break;
-            }
-
-        case 14:		/* DATA NOT VALID (no data available) */
-            {
-                data_not_valid_t d; d.raw = data;
-                break;
-            }
-
-        case 15:		/* FILLER WORD */
-            {
-                filler_word_t d; d.raw = data;
-                break;
-            }
     }
 
     type_last = type_current;	/* save type of current data word */
@@ -177,8 +65,6 @@ void decode_fadc(std::string inputfile, std::string outputfile)
 
     TFile *file = new TFile(outputfile.c_str(), "RECREATE");
 
-    UInt_t * buf;
-    //std::string chan = "channel7";
 
     TTree *tree = new TTree("tree", "Decoded Data Tree");
 
@@ -190,10 +76,9 @@ void decode_fadc(std::string inputfile, std::string outputfile)
         branches.push_back(branch);
     }
 
-    buf = f.getEvBuffer();
-    f.codaRead();
-    buf = f.getEvBuffer();
-    f.codaRead();
+    UInt_t * buf;
+    buf = f.getEvBuffer(); f.codaRead(); // ignore two blocks
+    buf = f.getEvBuffer(); f.codaRead(); // ignore two blocks
 
     int t = 1;
 
@@ -213,6 +98,6 @@ void decode_fadc(std::string inputfile, std::string outputfile)
 
     tree->Write();
     file->Close();
-    std::cout<<"Written"<<t<<"events to:"<<outputfile<<std::endl;
+    std::cout<<"Written "<<t<<" events to:"<<outputfile<<std::endl;
 }
 
