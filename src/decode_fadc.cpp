@@ -8,9 +8,7 @@
 
 #include "THaCodaFile.h"
 
-
-#include "fa250types.h"
-#include "jlabtypes.h"
+#include "eviotypes.h"
 
 int current_chan = 0;
 int entry = 0;
