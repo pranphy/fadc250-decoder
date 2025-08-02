@@ -12,10 +12,9 @@
 
 int current_chan = 0;
 int entry = 0;
-int data_a[16][250];
 
 
-void decode_word(uint32_t data)
+void decode_word(uint32_t data, int adc_value[16][250])
 {
     static uint32_t type_last = 15;	/* initialize to type FILLER WORD */
     static int new_type = 0;
@@ -35,22 +34,20 @@ void decode_word(uint32_t data)
         type_current = type_last;
     }
 
-    switch( type_current )
+    if ( type_current == 4 ) 		/* WINDOW RAW DATA */
     {
-        case 4:		/* WINDOW RAW DATA */
-            if( new_type )
-            {
-                fa250_window_raw_data_1_t d; d.raw = data;
-                current_chan = d.bf.channel_number;
-                entry = 0;
-            }
-            else
-            {
-                fa250_window_raw_data_n_t d; d.raw = data;
-                data_a[current_chan][entry++] = d.bf.adc_sample_1;
-                data_a[current_chan][entry++] = d.bf.adc_sample_2;
-            }
-            break;
+        if( new_type )
+        {
+            fa250_window_raw_data_1_t d; d.raw = data;
+            current_chan = d.bf.channel_number;
+            entry = 0;
+        }
+        else
+        {
+            fa250_window_raw_data_n_t d; d.raw = data;
+            adc_value[current_chan][entry++] = d.bf.adc_sample_1;
+            adc_value[current_chan][entry++] = d.bf.adc_sample_2;
+        }
     }
 
     type_last = type_current;	/* save type of current data word */
@@ -61,16 +58,16 @@ void decode_fadc(std::string inputfile, std::string outputfile)
 {
     Decoder::THaCodaFile f(inputfile.c_str());
 
-    TFile *file = new TFile(outputfile.c_str(), "RECREATE");
+    auto *file = new TFile(outputfile.c_str(), "RECREATE");
+    auto *tree = new TTree("tree", "Decoded Data Tree");
 
-
-    TTree *tree = new TTree("tree", "Decoded Data Tree");
+    int adc_value[16][250];
 
     // Create branches for each channel
     std::vector<TBranch*> branches;
     for (size_t i = 0; i < 16; ++i) {
         std::string branchName = "channel" + std::to_string(i);
-        TBranch *branch = tree->Branch(branchName.c_str(), &data_a[i], "data_a[250]/I", 40000);
+        TBranch *branch = tree->Branch(branchName.c_str(), &adc_value[i], "adc_value[250]/I", 40000);
         branches.push_back(branch);
     }
 
@@ -86,7 +83,7 @@ void decode_fadc(std::string inputfile, std::string outputfile)
 
         // Fill the array with data
         for (int i = 0; i < size; ++i) {
-            decode_word(buf[i]);
+            decode_word(buf[i],adc_value);
         }
 
         tree->Fill();
