@@ -49,7 +49,7 @@ To use the decoder, run the following command:
 
 where `<input_file>` is the path to the FADC250 data file and `<output_file>` is the path to the output file.
 
-> ! NOTE
+> [!IMPORTANT]
 > This resulting executable depends upon the dynamic evio library `libevio.so`, make sure that `libevio.so` is in the `LD_LIBRARY_PATH` environment variable. Again, on ifarm `module load evio` should take care of this.
 
 ## Output Tree
